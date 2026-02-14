@@ -1,11 +1,15 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+import fs from 'fs/promises';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { Preprocessor } from './Configuration';
 import CompileLessCommand from './CompileLessCommand';
 
 const LESS_EXT = '.less';
 const COMPILE_COMMAND = 'easyLess.compile';
+const DEFAULT_SOURCE_DIR = '${workspaceFolder}/less/';
+const DEFAULT_OUTPUT_DIR = '${workspaceFolder}/css/';
 
 let lessDiagnosticCollection: vscode.DiagnosticCollection;
 
@@ -80,7 +84,6 @@ export async function activate(context: vscode.ExtensionContext) {
   };
 }
 
-
 async function initializeDefaultFolderSettings(context: vscode.ExtensionContext): Promise<void> {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) {
@@ -92,20 +95,23 @@ async function initializeDefaultFolderSettings(context: vscode.ExtensionContext)
     return;
   }
 
+  await fs.mkdir(path.join(workspaceFolder.uri.fsPath, '.vscode'), { recursive: true });
+
   const lessConfiguration = vscode.workspace.getConfiguration('less', workspaceFolder.uri);
   const compileSettings = lessConfiguration.get<Record<string, unknown>>('compile') || {};
-
   const hasSourceDir = typeof compileSettings.sourceDir === 'string' && compileSettings.sourceDir.length > 0;
   const hasOutputDir = typeof compileSettings.outputDir === 'string' && compileSettings.outputDir.length > 0;
 
-  if (!hasSourceDir && !hasOutputDir) {
-    const defaultCompileSettings = {
-      ...compileSettings,
-      sourceDir: '${workspaceFolder}/less/',
-      outputDir: '${workspaceFolder}/css/',
-    };
-
-    await lessConfiguration.update('compile', defaultCompileSettings, vscode.ConfigurationTarget.WorkspaceFolder);
+  if (!hasSourceDir || !hasOutputDir) {
+    await lessConfiguration.update(
+      'compile',
+      {
+        ...compileSettings,
+        sourceDir: hasSourceDir ? compileSettings.sourceDir : DEFAULT_SOURCE_DIR,
+        outputDir: hasOutputDir ? compileSettings.outputDir : DEFAULT_OUTPUT_DIR,
+      },
+      vscode.ConfigurationTarget.WorkspaceFolder,
+    );
   }
 
   await context.globalState.update(initializationKey, true);
