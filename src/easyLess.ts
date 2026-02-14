@@ -9,8 +9,18 @@ const COMPILE_COMMAND = 'easyLess.compile';
 
 let lessDiagnosticCollection: vscode.DiagnosticCollection;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   lessDiagnosticCollection = vscode.languages.createDiagnosticCollection();
+
+  const config = vscode.workspace.getConfiguration('less.compile');
+
+  if (config.get('sourceDir') === undefined) {
+    await config.update('sourceDir', '${workspaceFolder}/less/', vscode.ConfigurationTarget.Workspace);
+  }
+
+  if (config.get('outputDir') === undefined) {
+    await config.update('outputDir', '${workspaceFolder}/css/', vscode.ConfigurationTarget.Workspace);
+  }
 
   const preprocessors: Preprocessor[] = [];
 

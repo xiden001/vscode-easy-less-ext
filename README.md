@@ -9,7 +9,7 @@ Easily work with LESS files in Visual Studio Code.
 # Default Settings
 
 - Compile on save occurs for every `.less` file in the project.
-- On first activation in a workspace, Easy LESS seeds `.vscode/settings.json` with:
+- On first activation in a workspace, Easy LESS v2 seeds `settings.json` with:
   - `\"less.compile.sourceDir\": \"${workspaceFolder}/less/\"`
   - `\"less.compile.outputDir\": \"${workspaceFolder}/css/\"`
     if both are not already configured.
