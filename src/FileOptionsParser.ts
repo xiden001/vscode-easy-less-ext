@@ -4,6 +4,8 @@ const SUPPORTED_PER_FILE_OPTS = new Set<string>([
   'main',
   'out',
   'outExt',
+  'sourceDir',
+  'outputDir',
   'sourceMap',
   'sourceMapFileInline',
   'compress',

@@ -72,6 +72,16 @@
               "description": "The file extension to use for generated .css files",
               "default": ".css"
             },
+            "sourceDir": {
+              "type": "string",
+              "description": "Optional LESS source root folder used to preserve subfolders when outputDir is also set",
+              "default": ""
+            },
+            "outputDir": {
+              "type": "string",
+              "description": "Optional CSS output root folder. When used with sourceDir, LESS files under sourceDir are emitted under outputDir with the same relative structure",
+              "default": ""
+            },
             "main": {
               "type": [
                 "string",

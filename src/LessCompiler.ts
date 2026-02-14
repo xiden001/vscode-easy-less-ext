@@ -108,11 +108,40 @@ function chooseOutputFilename(options: Configuration.EasyLessOptions, lessFile: 
     }
   } else {
     // `out` not set: output to the same basename as the less file
+    const mappedOutputFile = chooseMappedOutputFilename(options, lessFile, lessPath, filenameNoExtension, extension);
+    if (mappedOutputFile) {
+      return mappedOutputFile;
+    }
+
     cssRelativeFilename = filenameNoExtension + extension;
   }
 
   const cssFile = path.resolve(lessPath, cssRelativeFilename);
   return cssFile;
+}
+
+function chooseMappedOutputFilename(
+  options: Configuration.EasyLessOptions,
+  lessFile: string,
+  lessPath: string,
+  filenameNoExtension: string,
+  extension: string,
+): string | undefined {
+  if (!options.sourceDir || !options.outputDir) {
+    return undefined;
+  }
+
+  const sourceRoot = resolveConfiguredDirectory(options.sourceDir, lessFile);
+  const outputRoot = resolveConfiguredDirectory(options.outputDir, lessFile);
+  const relativeFilePath = path.relative(sourceRoot, lessFile);
+
+  if (relativeFilePath.startsWith('..') || path.isAbsolute(relativeFilePath)) {
+    return undefined;
+  }
+
+  const relativeDir = path.dirname(path.relative(sourceRoot, lessPath));
+  const outputDirectory = relativeDir === '.' ? outputRoot : path.join(outputRoot, relativeDir);
+  return path.join(outputDirectory, `${filenameNoExtension}${extension}`);
 }
 
 function isFolder(filename: string): filename is `${string}/` | `${string}\\` {
@@ -162,6 +191,17 @@ function intepolatePath(path: string, lessFilePath: string): string {
   }
 
   return path;
+}
+
+function resolveConfiguredDirectory(configuredPath: string, lessFilePath: string): string {
+  const interpolatedPath = intepolatePath(configuredPath, lessFilePath);
+  if (path.isAbsolute(interpolatedPath)) {
+    return interpolatedPath;
+  }
+
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(lessFilePath));
+  const baseDirectory = workspaceFolder?.uri.fsPath ?? path.dirname(lessFilePath);
+  return path.resolve(baseDirectory, interpolatedPath);
 }
 
 function resolveMainFilePaths(

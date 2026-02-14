@@ -136,6 +136,38 @@ describe('compile: characterise existing behaviour', () => {
       expect(mkdirSpy.mock.calls).toEqual([[`${WORKSPACE_FOLDER}`, { recursive: true }]]);
       expect(writeFileSpy.mock.calls).toEqual([[`${WORKSPACE_FOLDER}/test.css`, CSS_CONTENTS]]);
     });
+
+    it('should preserve relative folders when sourceDir and outputDir are configured', async () => {
+      vi.spyOn(Uri, 'file').mockReturnValue({} as Uri);
+      const workspaceFolder = { uri: { fsPath: '/home/abc/dev/project' } } as WorkspaceFolder;
+      vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(workspaceFolder);
+
+      const options = {
+        sourceDir: '${workspaceFolder}/less',
+        outputDir: '${workspaceFolder}/css',
+      };
+
+      await compile('/home/abc/dev/project/less/style/styles.less', LESS_CONTENTS, options);
+
+      expect(mkdirSpy.mock.calls).toEqual([['/home/abc/dev/project/css/style', { recursive: true }]]);
+      expect(writeFileSpy.mock.calls).toEqual([['/home/abc/dev/project/css/style/styles.css', CSS_CONTENTS]]);
+    });
+
+    it('should fall back to the original output location when file is outside sourceDir', async () => {
+      vi.spyOn(Uri, 'file').mockReturnValue({} as Uri);
+      const workspaceFolder = { uri: { fsPath: '/home/abc/dev/project' } } as WorkspaceFolder;
+      vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(workspaceFolder);
+
+      const options = {
+        sourceDir: '${workspaceFolder}/less',
+        outputDir: '${workspaceFolder}/css',
+      };
+
+      await compile('/home/abc/dev/project/shared/styles.less', LESS_CONTENTS, options);
+
+      expect(mkdirSpy.mock.calls).toEqual([['/home/abc/dev/project/shared', { recursive: true }]]);
+      expect(writeFileSpy.mock.calls).toEqual([['/home/abc/dev/project/shared/styles.css', CSS_CONTENTS]]);
+    });
   });
 
   describe('sourceMap', () => {

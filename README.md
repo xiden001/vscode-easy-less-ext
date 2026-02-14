@@ -106,6 +106,23 @@ N.B. Also available from the command palette as "Compile LESS to CSS".
 - This allows you to specify an alternative output file extension (e.g. `.wxss` instead of `.css`)
 - This applies to the `.map` file also (e.g. `.wxss.map`)
 
+`sourceDir: { string }` and `outputDir: { string }`
+
+- Use these together to preserve your folder structure when compiling from one root into another.
+- If the saved `.less` file is inside `sourceDir`, Easy LESS writes the `.css` file into `outputDir` with the same relative subfolder path.
+- Relative values are resolved from the workspace folder (or from the current `.less` file directory if no workspace folder is available).
+- Supports `${workspaceFolder}` and `${workspaceRoot}` interpolation.
+- Example:
+  ```json
+  {
+    "less.compile": {
+      "sourceDir": "${workspaceFolder}/less",
+      "outputDir": "${workspaceFolder}/css"
+    }
+  }
+  ```
+  With this setup, saving `/less/style/styles.less` generates `/css/style/styles.css`.
+
 `sourceMap: { boolean }`
 
 - Enables generation of source map files.

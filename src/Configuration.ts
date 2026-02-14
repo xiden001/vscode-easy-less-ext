@@ -29,6 +29,8 @@ export interface EasyLessOptions extends Less.Options {
   main?: string | string[];
   out?: string | boolean;
   outExt?: string;
+  sourceDir?: string;
+  outputDir?: string;
   sourceMap?: any;
   relativeUrls?: boolean;
   sourceMapFileInline?: boolean;
