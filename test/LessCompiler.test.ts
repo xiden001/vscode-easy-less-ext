@@ -153,6 +153,22 @@ describe('compile: characterise existing behaviour', () => {
       expect(writeFileSpy.mock.calls).toEqual([['/home/abc/dev/project/css/style/styles.css', CSS_CONTENTS]]);
     });
 
+    it('should preserve deeper nested folders when sourceDir and outputDir are configured', async () => {
+      vi.spyOn(Uri, 'file').mockReturnValue({} as Uri);
+      const workspaceFolder = { uri: { fsPath: '/home/abc/dev/project' } } as WorkspaceFolder;
+      vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(workspaceFolder);
+
+      const options = {
+        sourceDir: '${workspaceFolder}/less',
+        outputDir: '${workspaceFolder}/css',
+      };
+
+      await compile('/home/abc/dev/project/less/views/calls/view.less', LESS_CONTENTS, options);
+
+      expect(mkdirSpy.mock.calls).toEqual([['/home/abc/dev/project/css/views/calls', { recursive: true }]]);
+      expect(writeFileSpy.mock.calls).toEqual([['/home/abc/dev/project/css/views/calls/view.css', CSS_CONTENTS]]);
+    });
+
     it('should fall back to the original output location when file is outside sourceDir', async () => {
       vi.spyOn(Uri, 'file').mockReturnValue({} as Uri);
       const workspaceFolder = { uri: { fsPath: '/home/abc/dev/project' } } as WorkspaceFolder;

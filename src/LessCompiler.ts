@@ -139,7 +139,7 @@ function chooseMappedOutputFilename(
     return undefined;
   }
 
-  const relativeDir = path.dirname(path.relative(sourceRoot, lessPath));
+  const relativeDir = path.dirname(relativeFilePath);
   const outputDirectory = relativeDir === '.' ? outputRoot : path.join(outputRoot, relativeDir);
   return path.join(outputDirectory, `${filenameNoExtension}${extension}`);
 }
