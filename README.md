@@ -9,10 +9,14 @@ Easily work with LESS files in Visual Studio Code.
 # Settings
 
 - After installation. paste the following settings into your settings.json
-- "less.compile" : {
-  "sourceDir": "${workspaceFolder}/less/",
-  "outputDir": "${workspaceFolder}/css/"
-  }
+- ```javascript
+  "less.compile" : {
+    "sourceDir": "${workspaceFolder}/less/",
+    "outputDir": "${workspaceFolder}/css/"
+    }
+  ```
+
+```
 
 # Basic Usage
 
@@ -26,3 +30,4 @@ N.B. Also available from the command palette as "Compile LESS to CSS".
 # credits
 
 See Easy Less Plugin readme
+```
