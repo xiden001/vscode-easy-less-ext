@@ -75,7 +75,7 @@
             "sourceDir": {
               "type": "string",
               "description": "Optional LESS source root folder used to preserve subfolders when outputDir is also set",
-              "default": ""
+              "default": "${workspaceFolder}/less/"
             },
             "outputDir": {
               "type": "string",

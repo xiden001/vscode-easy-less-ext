@@ -119,8 +119,8 @@ N.B. Also available from the command palette as "Compile LESS to CSS".
   ```json
   {
     "less.compile": {
-      "sourceDir": "${workspaceFolder}/less",
-      "outputDir": "${workspaceFolder}/css"
+      "sourceDir": "${workspaceFolder}/less/",
+      "outputDir": "${workspaceFolder}/css/"
     }
   }
   ```
