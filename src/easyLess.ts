@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import { Preprocessor } from './Configuration';
 import CompileLessCommand from './CompileLessCommand';
+import { importsTargetFile } from './LessImportResolver';
 
 const LESS_EXT = '.less';
 const COMPILE_COMMAND = 'easyLess.compile';
@@ -34,16 +35,18 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   // compile less on save when file is dirty
-  const didSaveEvent = vscode.workspace.onDidSaveTextDocument(document => {
+  const didSaveEvent = vscode.workspace.onDidSaveTextDocument(async document => {
     if (document.fileName.endsWith(LESS_EXT)) {
-      new CompileLessCommand(document, lessDiagnosticCollection).setPreprocessors(preprocessors).execute();
+      //new CompileLessCommand(document, lessDiagnosticCollection).setPreprocessors(preprocessors).execute();
+      await compileDocumentAndImporters(document, preprocessors);
     }
   });
 
   // compile less on save when file is clean (clean saves don't trigger onDidSaveTextDocument, so use this as fallback)
-  const willSaveEvent = vscode.workspace.onWillSaveTextDocument(e => {
+  const willSaveEvent = vscode.workspace.onWillSaveTextDocument(async e => {
     if (e.document.fileName.endsWith(LESS_EXT) && !e.document.isDirty) {
-      new CompileLessCommand(e.document, lessDiagnosticCollection).setPreprocessors(preprocessors).execute();
+      //new CompileLessCommand(e.document, lessDiagnosticCollection).setPreprocessors(preprocessors).execute();
+      await compileDocumentAndImporters(e.document, preprocessors);
     }
   });
 
@@ -84,5 +87,36 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
   if (lessDiagnosticCollection) {
     lessDiagnosticCollection.dispose();
+  }
+}
+
+async function compileDocumentAndImporters(
+  document: vscode.TextDocument,
+  preprocessors: Preprocessor[],
+): Promise<void> {
+  await compileDocument(document, preprocessors);
+  await compileImporterFiles(document, preprocessors);
+}
+
+async function compileDocument(document: vscode.TextDocument, preprocessors: Preprocessor[]): Promise<void> {
+  await new CompileLessCommand(document, lessDiagnosticCollection).setPreprocessors(preprocessors).execute();
+}
+
+async function compileImporterFiles(
+  importedDocument: vscode.TextDocument,
+  preprocessors: Preprocessor[],
+): Promise<void> {
+  const lessFiles = await vscode.workspace.findFiles('**/*.less', '**/node_modules/**');
+  const importedFilePath = importedDocument.uri.fsPath;
+
+  for (const lessFile of lessFiles) {
+    if (lessFile.fsPath === importedFilePath) {
+      continue;
+    }
+
+    const importerDocument = await vscode.workspace.openTextDocument(lessFile);
+    if (importsTargetFile(importerDocument.fileName, importerDocument.getText(), importedFilePath)) {
+      await compileDocument(importerDocument, preprocessors);
+    }
   }
 }
