@@ -1,7 +1,7 @@
 {
   "name": "easy-less-v2",
   "displayName": "Easy LESS v2",
-  "description": "Auto-compile LESS to CSS on save",
+  "description": "Auto-compile LESS to CSS on save with support for specific Source and Output directories (with subdirectories)! Fork of the original Easy LESS extension by @mrcrowl.",
   "version": "3.0.1",
   "publisher": "SamuelAdoga",
   "engines": {

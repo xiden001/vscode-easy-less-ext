@@ -9,8 +9,10 @@ const COMPILE_COMMAND = 'easyLess.compile';
 
 let lessDiagnosticCollection: vscode.DiagnosticCollection;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   lessDiagnosticCollection = vscode.languages.createDiagnosticCollection();
+
+  await initializeDefaultFolderSettings(context);
 
   const preprocessors: Preprocessor[] = [];
 
@@ -76,6 +78,37 @@ export function activate(context: vscode.ExtensionContext) {
   return {
     registerPreprocessor: (processor: Preprocessor): void => void preprocessors.push(processor),
   };
+}
+
+
+async function initializeDefaultFolderSettings(context: vscode.ExtensionContext): Promise<void> {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  if (!workspaceFolder) {
+    return;
+  }
+
+  const initializationKey = `easyLess.defaults.initialized:${workspaceFolder.uri.toString()}`;
+  if (context.globalState.get<boolean>(initializationKey)) {
+    return;
+  }
+
+  const lessConfiguration = vscode.workspace.getConfiguration('less', workspaceFolder.uri);
+  const compileSettings = lessConfiguration.get<Record<string, unknown>>('compile') || {};
+
+  const hasSourceDir = typeof compileSettings.sourceDir === 'string' && compileSettings.sourceDir.length > 0;
+  const hasOutputDir = typeof compileSettings.outputDir === 'string' && compileSettings.outputDir.length > 0;
+
+  if (!hasSourceDir && !hasOutputDir) {
+    const defaultCompileSettings = {
+      ...compileSettings,
+      sourceDir: '${workspaceFolder}/less/',
+      outputDir: '${workspaceFolder}/css/',
+    };
+
+    await lessConfiguration.update('compile', defaultCompileSettings, vscode.ConfigurationTarget.WorkspaceFolder);
+  }
+
+  await context.globalState.update(initializationKey, true);
 }
 
 // this method is called when your extension is deactivated

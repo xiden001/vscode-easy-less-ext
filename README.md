@@ -6,28 +6,13 @@ Easily work with LESS files in Visual Studio Code.
 
 ---
 
-# Features
-
-- Generates a `.css` file each time you save a `.less` file.  
-  e.g. `styles.less` --> `styles.css`
-
-- Compile errors integrate with the standard _Errors and Warnings_ list.
-
-- Has reasonable [default settings](#default-settings), but...
-
-- Configurable, as needed:
-
-  - Configurable at user, workspace and per-file level (see [Advanced Usage](#advanced-usage) below)
-  - _Main_ file support
-  - Alternative output file
-  - Output suppression
-  - Compression
-
-- [autoprefixer](https://github.com/postcss/autoprefixer) plugin included.
-
 # Default Settings
 
 - Compile on save occurs for every `.less` file in the project.
+- On first activation in a workspace, Easy LESS seeds `.vscode/settings.json` with:
+  - `\"less.compile.sourceDir\": \"${workspaceFolder}/less/\"`
+  - `\"less.compile.outputDir\": \"${workspaceFolder}/css/\"`
+    if both are not already configured.
 - The `.css` file is output to the same directory as the source `.less` file.
 - Source maps (`.css.map` files) are _not_ output.
 - Compression is disabled.
@@ -60,6 +45,24 @@ N.B. Also available from the command palette as "Compile LESS to CSS".
     }
   }
   ```
+
+# Features
+
+- Generates a `.css` file each time you save a `.less` file.  
+  e.g. `styles.less` --> `styles.css`
+
+- Compile errors integrate with the standard _Errors and Warnings_ list.
+
+- Has reasonable [default settings](#default-settings), but...
+
+- Configurable, as needed:
+  - Configurable at user, workspace and per-file level (see [Advanced Usage](#advanced-usage) below)
+  - _Main_ file support
+  - Alternative output file
+  - Output suppression
+  - Compression
+
+- [autoprefixer](https://github.com/postcss/autoprefixer) plugin included.
 
 ## Per-File Configuration
 
@@ -201,7 +204,7 @@ N.B. Also available from the command palette as "Compile LESS to CSS".
 `javascriptEnabled: { boolean }`
 
 - Enables inline javascript within less files (defaults to `false`).
-- Inline JavaScript occurs for any text within backticks, e.g. `` font-weight: `10+10`px'; ``
+- Inline JavaScript occurs for any text within backticks, e.g. ``font-weight: `10+10`px';``
 
 `math: { "parens-division" | "parens" | "always" | "strict" | "strict-legacy" }`
 
