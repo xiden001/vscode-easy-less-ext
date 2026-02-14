@@ -80,7 +80,7 @@
             "outputDir": {
               "type": "string",
               "description": "Optional CSS output root folder. When used with sourceDir, LESS files under sourceDir are emitted under outputDir with the same relative structure",
-              "default": ""
+              "default": "${workspaceFolder}/css/"
             },
             "main": {
               "type": [
