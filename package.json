@@ -2,7 +2,7 @@
   "name": "easy-less-v2",
   "displayName": "Easy LESS v2",
   "description": "Auto-compile LESS to CSS on save with support for specific Source and Output directories (with subdirectories) and import dependency tracking!",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "publisher": "SamuelAdoga",
   "engines": {
     "vscode": "^1.31.0"
@@ -75,12 +75,12 @@
             "sourceDir": {
               "type": "string",
               "description": "Optional LESS source root folder used to preserve subfolders when outputDir is also set",
-              "default": "${workspaceFolder}/less/"
+              "default": ""
             },
             "outputDir": {
               "type": "string",
               "description": "Optional CSS output root folder. When used with sourceDir, LESS files under sourceDir are emitted under outputDir with the same relative structure",
-              "default": "${workspaceFolder}/css/"
+              "default": ""
             },
             "main": {
               "type": [
