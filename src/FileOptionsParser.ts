@@ -66,19 +66,44 @@ function splitOption(item: string): [string, string] {
 }
 
 function parsePrimitive(rawValue: string): Primitive {
-  if (rawValue.match(/^(true|false|undefined|null|[0-9]+)$/)) {
-    return eval(rawValue) as NonStringPrimitive;
+  if (rawValue.match(/^[0-9]+$/)) {
+    return Number(rawValue);
+  }
+
+  if (rawValue === 'true') {
+    return true;
+  }
+
+  if (rawValue === 'false') {
+    return false;
+  }
+
+  if (rawValue === 'null') {
+    return null;
+  }
+
+  if (rawValue === 'undefined') {
+    return undefined;
   }
 
   if (isEnclosedInQuotes(rawValue)) {
-    try {
-      return eval(rawValue);
-    } catch (e) {
-      return rawValue;
-    }
+    return unquoteString(rawValue);
   }
 
   return rawValue;
+}
+
+function unquoteString(rawValue: string): string {
+  const quoteCharacter = rawValue[0];
+  const innerValue = rawValue.slice(1, -1);
+
+  return innerValue.replace(/\\(.)/g, (_match, escapedCharacter) => {
+    if (escapedCharacter === quoteCharacter || escapedCharacter === '\\') {
+      return escapedCharacter;
+    }
+
+    return escapedCharacter;
+  });
 }
 
 const SINGLE_QUOTE = "'";

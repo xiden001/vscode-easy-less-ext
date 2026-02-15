@@ -89,4 +89,8 @@ describe('parse', () => {
     expect(parse('// main: a.less, main: b.less', DEFAULTS)).toEqual({ ...DEFAULTS, main: ['a.less', 'b.less'] });
     expect(parse('// main: "a.less", main: "b.less"', DEFAULTS)).toEqual({ ...DEFAULTS, main: ['a.less', 'b.less'] });
   });
+
+  it('treats quoted expressions as plain strings', () => {
+    expect(parse(`// main: "${'${process.cwd()}'}"`, DEFAULTS)).toEqual({ ...DEFAULTS, main: '${process.cwd()}' });
+  });
 });

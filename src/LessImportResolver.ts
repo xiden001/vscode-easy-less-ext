@@ -19,6 +19,7 @@ export function importsTargetFile(importerFilePath: string, importerContent: str
 
 function extractImportPaths(content: string): string[] {
   const results: string[] = [];
+  IMPORT_REGEX.lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = IMPORT_REGEX.exec(content)) !== null) {
     const rawPath = match[1]?.trim();
@@ -54,5 +55,10 @@ function isExternalImport(importPath: string): boolean {
 }
 
 function normalizePath(filePath: string): string {
-  return path.normalize(filePath).toLowerCase();
+  const normalizedPath = path.normalize(filePath);
+  return isCaseInsensitiveFileSystem() ? normalizedPath.toLowerCase() : normalizedPath;
+}
+
+function isCaseInsensitiveFileSystem(): boolean {
+  return process.platform === 'win32' || process.platform === 'darwin';
 }

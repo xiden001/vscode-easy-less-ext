@@ -11,7 +11,7 @@ vi.mock('less');
 vi.mock('vscode', () => {
   return {
     Uri: { file: vi.fn() },
-    workspace: { getWorkspaceFolder: vi.fn() },
+    workspace: { getWorkspaceFolder: vi.fn(), workspaceFolders: [] },
   };
 });
 
@@ -97,7 +97,11 @@ describe('compile: characterise existing behaviour', () => {
       expect(writeFileSpy.mock.calls).toEqual([['/home/mrcrowl/dist/styles.wxss', CSS_CONTENTS]]);
     });
 
-    it('should resolve relative paths', async () => {
+    it('should resolve relative paths within workspace', async () => {
+      vi.spyOn(Uri, 'file').mockReturnValue({} as Uri);
+      const workspaceFolder = { uri: { fsPath: '/var' } } as WorkspaceFolder;
+      vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(workspaceFolder);
+
       const options = { out: '../out/' };
       await compile(`/var/dev/test.less`, LESS_CONTENTS, options);
 
@@ -183,6 +187,33 @@ describe('compile: characterise existing behaviour', () => {
 
       expect(mkdirSpy.mock.calls).toEqual([['/home/abc/dev/project/shared', { recursive: true }]]);
       expect(writeFileSpy.mock.calls).toEqual([['/home/abc/dev/project/shared/styles.css', CSS_CONTENTS]]);
+    });
+  });
+
+
+  describe('path safety', () => {
+    beforeEach(() => {
+      vi.spyOn(less, 'render').mockResolvedValue(RENDER_RESULT);
+      vi.spyOn(Uri, 'file').mockReturnValue({} as Uri);
+    });
+
+    it('throws if out escapes workspace root', async () => {
+      const workspaceFolder = { uri: { fsPath: '/workspace/project' } } as WorkspaceFolder;
+      vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(workspaceFolder);
+
+      await expect(compile('/workspace/project/styles/app.less', LESS_CONTENTS, { out: '../../../tmp/evil.css' })).rejects.toThrow(
+        'Invalid \"out\" path',
+      );
+      expect(writeFileSpy).not.toHaveBeenCalled();
+    });
+
+    it('throws if main escapes workspace root', async () => {
+      const workspaceFolder = { uri: { fsPath: '/workspace/project' } } as WorkspaceFolder;
+      vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(workspaceFolder);
+
+      await expect(compile('/workspace/project/styles/app.less', '// main: ../../../etc/passwd', {})).rejects.toThrow(
+        'Invalid \"main\" path',
+      );
     });
   });
 
