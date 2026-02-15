@@ -32,7 +32,8 @@ N.B. Also available from the command palette as "Compile LESS to CSS".
 
 # Credits
 
-See Easy Less Plugin Readme
+This extension is based on the Easy Less Extension by @mrcrowl
+View Readme on EasyLess extension for additional information
 
 ```
 

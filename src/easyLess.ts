@@ -7,13 +7,12 @@ import { importsTargetFile } from './LessImportResolver';
 
 const LESS_EXT = '.less';
 const COMPILE_COMMAND = 'easyLess.compile';
+const COMPILE_ALL_CONCURRENCY = 8;
 
 let lessDiagnosticCollection: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
   lessDiagnosticCollection = vscode.languages.createDiagnosticCollection();
-
-  const config = vscode.workspace.getConfiguration('less.compile');
 
   const preprocessors: Preprocessor[] = [];
 
@@ -37,7 +36,6 @@ export function activate(context: vscode.ExtensionContext) {
   // compile less on save when file is dirty
   const didSaveEvent = vscode.workspace.onDidSaveTextDocument(async document => {
     if (document.fileName.endsWith(LESS_EXT)) {
-      //new CompileLessCommand(document, lessDiagnosticCollection).setPreprocessors(preprocessors).execute();
       await compileDocumentAndImporters(document, preprocessors);
     }
   });
@@ -45,7 +43,6 @@ export function activate(context: vscode.ExtensionContext) {
   // compile less on save when file is clean (clean saves don't trigger onDidSaveTextDocument, so use this as fallback)
   const willSaveEvent = vscode.workspace.onWillSaveTextDocument(async e => {
     if (e.document.fileName.endsWith(LESS_EXT) && !e.document.isDirty) {
-      //new CompileLessCommand(e.document, lessDiagnosticCollection).setPreprocessors(preprocessors).execute();
       await compileDocumentAndImporters(e.document, preprocessors);
     }
   });
@@ -64,10 +61,10 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage('No .less files found in workspace.');
       return;
     }
-    files.forEach(file => {
-      vscode.workspace.openTextDocument(file).then(document => {
-        new CompileLessCommand(document, lessDiagnosticCollection).setPreprocessors(preprocessors).execute();
-      });
+
+    await runWithConcurrencyLimit(files, COMPILE_ALL_CONCURRENCY, async file => {
+      const document = await vscode.workspace.openTextDocument(file);
+      await compileDocument(document, preprocessors);
     });
   });
 
@@ -119,4 +116,24 @@ async function compileImporterFiles(
       await compileDocument(importerDocument, preprocessors);
     }
   }
+}
+
+async function runWithConcurrencyLimit<T>(
+  items: T[],
+  concurrencyLimit: number,
+  task: (item: T) => Promise<void>,
+): Promise<void> {
+  const limit = Math.max(1, concurrencyLimit);
+  const queue = [...items];
+
+  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
+    while (queue.length > 0) {
+      const item = queue.shift();
+      if (item !== undefined) {
+        await task(item);
+      }
+    }
+  });
+
+  await Promise.all(workers);
 }
