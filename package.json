@@ -2,7 +2,7 @@
   "name": "easy-less-v2",
   "displayName": "Easy LESS v2",
   "description": "Auto-compile LESS to CSS on save with support for specific Source and Output directories (with subdirectories) and import dependency tracking!",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "publisher": "SamuelAdoga",
   "engines": {
     "vscode": "^1.31.0"

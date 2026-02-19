@@ -8,6 +8,8 @@ import * as FileOptionsParser from './FileOptionsParser';
 import { LessDocumentResolverPlugin } from './LessDocumentResolverPlugin';
 
 const DEFAULT_EXT = '.css';
+const LESS_FILE_EXT = '.less';
+const MAX_MAIN_REDIRECT_DEPTH = 25;
 
 // compile the given less file
 export async function compile(
@@ -16,73 +18,99 @@ export async function compile(
   defaults: Configuration.EasyLessOptions,
   preprocessors: Configuration.Preprocessor[] = [],
 ): Promise<void> {
-  const options: Configuration.EasyLessOptions = FileOptionsParser.parse(content, defaults);
-  const lessPath: string = path.dirname(lessFile);
+  const compileStack = new Set<string>();
+  await compileInternal(lessFile, content, defaults, preprocessors, compileStack);
+}
 
-  // Option `main`.
-  if (options.main) {
-    // When `main` is set: compile the referenced file(s) instead.
-    const mainFilePaths: string[] = resolveMainFilePaths(options.main, lessFile, lessFile);
-    if (mainFilePaths.length > 0) {
-      for (const filePath of mainFilePaths) {
-        const mainPath: path.ParsedPath = path.parse(filePath);
-        const mainRootFileInfo = Configuration.getRootFileInfo(mainPath);
-        const mainDefaults = { ...defaults, rootFileInfo: mainRootFileInfo };
-        const mainContent = await fs.readFile(filePath, { encoding: 'utf-8' });
-        await compile(filePath, mainContent, mainDefaults);
+async function compileInternal(
+  lessFile: string,
+  content: string,
+  defaults: Configuration.EasyLessOptions,
+  preprocessors: Configuration.Preprocessor[] = [],
+  compileStack: Set<string>,
+): Promise<void> {
+  const normalizedLessFile = path.resolve(lessFile);
+  if (compileStack.has(normalizedLessFile)) {
+    throw new Error(`Circular "main" reference detected for '${lessFile}'.`);
+  }
+
+  if (compileStack.size >= MAX_MAIN_REDIRECT_DEPTH) {
+    throw new Error(`Exceeded maximum "main" redirect depth of ${MAX_MAIN_REDIRECT_DEPTH}.`);
+  }
+
+  compileStack.add(normalizedLessFile);
+
+  try {
+    const options: Configuration.EasyLessOptions = FileOptionsParser.parse(content, defaults);
+    const lessPath: string = path.dirname(lessFile);
+
+    // Option `main`.
+    if (options.main) {
+      // When `main` is set: compile the referenced file(s) instead.
+      const mainFilePaths: string[] = resolveMainFilePaths(options.main, lessFile, lessFile);
+      if (mainFilePaths.length > 0) {
+        for (const filePath of mainFilePaths) {
+          const mainPath: path.ParsedPath = path.parse(filePath);
+          const mainRootFileInfo = Configuration.getRootFileInfo(mainPath);
+          const mainDefaults = { ...defaults, rootFileInfo: mainRootFileInfo };
+          const mainContent = await fs.readFile(filePath, { encoding: 'utf-8' });
+          await compileInternal(filePath, mainContent, mainDefaults, preprocessors, compileStack);
+        }
+        return;
       }
+    }
+
+    // No output.
+    if (options.out === null || options.out === false) {
       return;
     }
-  }
 
-  // No output.
-  if (options.out === null || options.out === false) {
-    return;
-  }
+    // Option `out`
+    const cssFilepath = chooseOutputFilename(options, lessFile, lessPath);
+    delete options.out;
 
-  // Option `out`
-  const cssFilepath = chooseOutputFilename(options, lessFile, lessPath);
-  delete options.out;
+    // Option `sourceMap`.
+    let sourceMapFile: string | undefined;
+    if (options.sourceMap) {
+      options.sourceMap = configureSourceMap(options, lessFile, cssFilepath);
 
-  // Option `sourceMap`.
-  let sourceMapFile: string | undefined;
-  if (options.sourceMap) {
-    options.sourceMap = configureSourceMap(options, lessFile, cssFilepath);
-
-    if (!options.sourceMap.sourceMapFileInline) {
-      sourceMapFile = `${cssFilepath}.map`;
-      options.sourceMap.sourceMapURL = `./${path.parse(sourceMapFile).base}`;
+      if (!options.sourceMap.sourceMapFileInline) {
+        sourceMapFile = `${cssFilepath}.map`;
+        options.sourceMap.sourceMapURL = `./${path.parse(sourceMapFile).base}`;
+      }
     }
-  }
 
-  // Option `autoprefixer`.
-  options.plugins = [];
-  if (options.autoprefixer) {
-    const LessPluginAutoPrefix = require('less-plugin-autoprefix');
-    const browsers: string[] = cleanBrowsersList(options.autoprefixer);
-    const autoprefixPlugin = new LessPluginAutoPrefix({ browsers });
+    // Option `autoprefixer`.
+    options.plugins = [];
+    if (options.autoprefixer) {
+      const LessPluginAutoPrefix = require('less-plugin-autoprefix');
+      const browsers: string[] = cleanBrowsersList(options.autoprefixer);
+      const autoprefixPlugin = new LessPluginAutoPrefix({ browsers });
 
-    options.plugins.push(autoprefixPlugin);
-  }
-
-  options.plugins.push(new LessDocumentResolverPlugin());
-
-  if (preprocessors.length > 0) {
-    // Clear options.rootFileInfo to ensure that less will not reload the content from the filepath again.
-    delete options.rootFileInfo;
-
-    // Used to cache some variables for use by other preprocessors.
-    const ctx = new Map<string, any>();
-    for await (const p of preprocessors) {
-      content = await p(content, ctx);
+      options.plugins.push(autoprefixPlugin);
     }
-  }
 
-  // Render to CSS.
-  const output = await less.render(content, options);
-  await writeFileContents(cssFilepath, output.css);
-  if (output.map && sourceMapFile) {
-    await writeFileContents(sourceMapFile, output.map);
+    options.plugins.push(new LessDocumentResolverPlugin());
+
+    if (preprocessors.length > 0) {
+      // Clear options.rootFileInfo to ensure that less will not reload the content from the filepath again.
+      delete options.rootFileInfo;
+
+      // Used to cache some variables for use by other preprocessors.
+      const ctx = new Map<string, any>();
+      for await (const p of preprocessors) {
+        content = await p(content, ctx);
+      }
+    }
+
+    // Render to CSS.
+    const output = await less.render(content, options);
+    await writeFileContents(cssFilepath, output.css);
+    if (output.map && sourceMapFile) {
+      await writeFileContents(sourceMapFile, output.map);
+    }
+  } finally {
+    compileStack.delete(normalizedLessFile);
   }
 }
 
@@ -206,7 +234,13 @@ function resolveMainFilePaths(this: void, main: string | string[], lessFilePath:
   const resolvedMainFilePaths: string[] = mainFiles.map(mainFile => {
     const interpolatedMainFilePath = interpolatePath(mainFile, lessFilePath);
     const resolvedPath = path.resolve(lessPath, interpolatedMainFilePath);
-    return assertPathWithinRoot(resolvedPath, compilationRoot, 'main');
+    const workspaceSafePath = assertPathWithinRoot(resolvedPath, compilationRoot, 'main');
+
+    if (!workspaceSafePath.toLowerCase().endsWith(LESS_FILE_EXT)) {
+      throw new Error(`Invalid "main" path '${mainFile}' must reference a ${LESS_FILE_EXT} file.`);
+    }
+
+    return workspaceSafePath;
   });
 
   if (resolvedMainFilePaths.indexOf(currentLessFile) >= 0) {

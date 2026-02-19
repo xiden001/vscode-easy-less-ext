@@ -1,5 +1,35 @@
 # Changelog
 
+## v3.0.4
+
+- Security: Added detection for circular per-file `main` redirects to prevent unbounded recursion (e.g. `a.less -> b.less -> a.less`) from causing compiler hangs/crashes.
+- Security: Added a maximum per-file `main` redirect depth (`25`) to fail safely on pathological redirect chains.
+- Security: Restricted per-file `main` targets to `.less` files only.
+- Tests: Added regression coverage for non-`.less` `main` targets and circular `main` references.
+
+## v3.0.3
+
+- Fixed remote code execution vulnerability caused by use of eval() in FileOptionsParser when parsing LESS comment options.
+- Prevented path traversal in the out option that allowed compiled output to be written outside the workspace.
+- Prevented arbitrary file reads via the main option by enforcing workspace boundary validation.
+- Replaced deprecated vscode.workspace.rootPath usage with workspace-folder–aware resolution to support multi-root workspaces.
+- Added concurrency control to the “Compile All Less Files” command to prevent excessive CPU and memory usage in large workspaces.
+- Corrected typo: intepolatePath renamed to interpolatePath.
+- Removed unused config variable from easyLess.ts
+
+## v3.0.2
+
+- minor tweaks
+
+## v3.0.1
+
+- sourceDir and outPutDir functionality added
+- processing of @imports and partials
+
+## Additions / Changes
+
+---
+
 ## v2.0.5
 
 - Updated less to v4.5.1. Fixes [#118](https://github.com/mrcrowl/vscode-easy-less/issues/118). (Thanks [sebastiaanteamcreative](https://github.com/sebastiaanteamcreative)).

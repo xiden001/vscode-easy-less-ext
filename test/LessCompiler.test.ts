@@ -215,6 +215,34 @@ describe('compile: characterise existing behaviour', () => {
         'Invalid \"main\" path',
       );
     });
+
+
+    it('throws if main references a non-less file', async () => {
+      const workspaceFolder = { uri: { fsPath: '/workspace/project' } } as WorkspaceFolder;
+      vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(workspaceFolder);
+
+      await expect(compile('/workspace/project/styles/app.less', '// main: ../templates/base.css', {})).rejects.toThrow(
+        'must reference a .less file',
+      );
+    });
+
+    it('throws for circular main references', async () => {
+      const workspaceFolder = { uri: { fsPath: '/workspace/project' } } as WorkspaceFolder;
+      vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(workspaceFolder);
+      vi.spyOn(fs, 'readFile').mockImplementation(async filePath => {
+        const normalizedPath = filePath.toString().replace(/\\/g, '/');
+        if (normalizedPath.endsWith('/styles/b.less')) {
+          return '// main: a.less';
+        }
+
+        return '// main: b.less';
+      });
+
+      await expect(compile('/workspace/project/styles/a.less', '// main: b.less', {})).rejects.toThrow(
+        'Circular "main" reference detected',
+      );
+      expect(writeFileSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('sourceMap', () => {
